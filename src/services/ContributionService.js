@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
-import { ContributionPayment, PaymentAllocation, Obligation, TreasuryTransaction } from '../models/index.js';
+import { ContributionPayment, PaymentAllocation, Obligation, TreasuryTransaction, Enrollment } from '../models/index.js';
 import { cents, money } from '../utils/money.js';
 import { badRequest, notFound } from '../utils/errors.js';
 import AuditService from './AuditService.js';
@@ -9,7 +9,8 @@ export default class ContributionService {
  static async record({member_id,fund_id,payment_date,amount,receipt_number,notes,allocations=[]},actor){
   if(cents(amount)<=0n)throw badRequest('Payment amount must be positive'); if(!/^\d{4}-\d{2}-\d{2}$/.test(String(payment_date||''))||Number.isNaN(Date.parse(`${payment_date}T00:00:00Z`)))throw badRequest('A valid payment date is required');if(typeof receipt_number!=='string'||!receipt_number.trim())throw badRequest('A receipt number is required');if(!Array.isArray(allocations))throw badRequest('Allocations must be a list');
   const tx=await sequelize.transaction();try{
-   if(!allocations.length){const open=await Obligation.findAll({where:{member_id,fund_id,due_date:{[Op.lte]:payment_date}},include:[PaymentAllocation],order:[['due_date','ASC'],['id','ASC']],transaction:tx,lock:tx.LOCK.UPDATE});let remaining=cents(amount);for(const obligation of open){const already=obligation.PaymentAllocations.reduce((s,a)=>s+cents(a.allocated_amount),0n);const due=cents(obligation.expected_amount)-already;if(due<=0n)continue;const take=remaining<due?remaining:due;if(take>0n){allocations.push({obligation_id:obligation.id,amount:money(take)});remaining-=take;}if(remaining===0n)break;}}
+   const enrollment=await Enrollment.findOne({where:{member_id,fund_id,effective_start_date:{[Op.lte]:payment_date},[Op.or]:[{effective_end_date:null},{effective_end_date:{[Op.gte]:payment_date}}]},transaction:tx,lock:tx.LOCK.UPDATE});if(!enrollment)throw badRequest('Member must be enrolled in this fund on the payment date');
+   if(!allocations.length){const [payYear,payMonth]=payment_date.slice(0,7).split('-').map(Number);const open=await Obligation.findAll({where:{member_id,fund_id,[Op.or]:[{due_date:{[Op.lte]:payment_date}},{period_year:{[Op.lt]:payYear}},{period_year:payYear,period_month:{[Op.lte]:payMonth}}]},include:[PaymentAllocation],order:[['due_date','ASC'],['id','ASC']],transaction:tx,lock:tx.LOCK.UPDATE});let remaining=cents(amount);for(const obligation of open){const already=obligation.PaymentAllocations.reduce((s,a)=>s+cents(a.allocated_amount),0n);const due=cents(obligation.expected_amount)-already;if(due<=0n)continue;const take=remaining<due?remaining:due;if(take>0n){allocations.push({obligation_id:obligation.id,amount:money(take)});remaining-=take;}if(remaining===0n)break;}}
    const obligations=allocations.length?await Obligation.findAll({where:{id:allocations.map(a=>a.obligation_id)},transaction:tx,lock:tx.LOCK.UPDATE,include:[PaymentAllocation]}):[];
    if(allocations.length!==obligations.length)throw notFound('One or more obligations were not found');
    let allocated=0n;
@@ -22,5 +23,5 @@ export default class ContributionService {
    await AuditService.record({userId:actor?.id,action:'PAYMENT_RECORDED',entityType:'ContributionPayment',entityId:payment.id,details:{fund_id,amount:money(amount),allocations}},tx);await tx.commit();return payment;
   }catch(e){await tx.rollback();throw e;}
  }
- static async list({fund_id,member_id}={}) {return ContributionPayment.findAll({where:{...(fund_id?{fund_id}:{}),...(member_id?{member_id}:{})},include:['Member','Fund','TreasuryTransaction'],order:[['payment_date','DESC'],['id','DESC']],limit:500});}
+ static async list({fund_id,member_id}={}) {return ContributionPayment.findAll({where:{...(fund_id?{fund_id}:{}),...(member_id?{member_id}:{})},include:['Member','Fund','TreasuryTransaction',{model:PaymentAllocation,include:[Obligation]}],order:[['payment_date','DESC'],['id','DESC']],limit:500});}
 }

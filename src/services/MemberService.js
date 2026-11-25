@@ -34,7 +34,7 @@ export default class MemberService {
         member_number: data.member_number?.trim() || `NZ-${randomBytes(4).toString('hex').toUpperCase()}`,
         first_name: data.first_name.trim(), last_name: data.last_name.trim(), gender: data.gender || 'UNSPECIFIED',
         date_of_birth: data.date_of_birth || null, phone: data.phone || null, email: data.email || null,
-        father_id: data.father_id || null, mother_id: data.mother_id || null, birth_order: data.birth_order || null, notes: data.notes || null
+        father_id: data.father_id || null, mother_id: data.mother_id || null, spouse_name: data.spouse_name?.trim() || null, birth_order: data.birth_order || null, notes: data.notes || null
       }, { transaction: tx });
       if (Number(member.father_id) === member.id || Number(member.mother_id) === member.id) throw badRequest('A member cannot be their own parent');
       await AuditService.record({ userId: actor?.id, action: 'MEMBER_CREATED', entityType: 'Member', entityId: member.id, details: { member_number: member.member_number } }, tx);
@@ -44,7 +44,7 @@ export default class MemberService {
   static async update(id, data, actor) {
     const member = await Member.findByPk(id); if (!member) throw notFound('Member not found');
     await this.validateParents(id, [data.father_id, data.mother_id], null);
-    const allowed = ['first_name','last_name','gender','date_of_birth','phone','email','father_id','mother_id','birth_order','notes'];
+    const allowed = ['first_name','last_name','gender','date_of_birth','phone','email','father_id','mother_id','spouse_name','birth_order','notes'];
     const changes = Object.fromEntries(allowed.filter(key => Object.hasOwn(data, key)).map(key => [key, data[key] === '' ? null : data[key]]));
     if (changes.first_name === null || changes.first_name === '' || changes.last_name === null || changes.last_name === '') throw badRequest('First name and last name cannot be blank');
     if (typeof changes.first_name === 'string') changes.first_name = changes.first_name.trim();
