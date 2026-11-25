@@ -1,0 +1,5 @@
+let csrfToken='';
+export class ApiError extends Error { constructor(message,status,details){super(message);this.status=status;this.details=details;} }
+async function request(path,options={}){const method=(options.method||'GET').toUpperCase();if(method!=='GET'&&!csrfToken){const csrf=await fetch('/api/csrf',{credentials:'same-origin'}).then(r=>r.json());csrfToken=csrf.data.token;}
+ const headers={Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{}),...(method!=='GET'?{'CSRF-Token':csrfToken}:{}),...options.headers};const res=await fetch(`/api${path}`,{...options,method,headers,credentials:'same-origin',body:options.body?JSON.stringify(options.body):undefined});let payload={};try{payload=await res.json();}catch{}if(!res.ok){if(res.status===403)csrfToken='';throw new ApiError(payload.error||'Request failed',res.status,payload.details);}if(path==='/auth/login')csrfToken='';return payload.data;}
+export const api={get:(p)=>request(p),post:(p,b)=>request(p,{method:'POST',body:b}),patch:(p,b)=>request(p,{method:'PATCH',body:b})};

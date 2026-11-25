@@ -1,0 +1,3 @@
+import { Model, DataTypes } from 'sequelize'; import sequelize from '../config/database.js';
+export default class Enrollment extends Model {}
+Enrollment.init({ id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true }, member_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false }, fund_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false }, enrolled_at: { type: DataTypes.DATEONLY, allowNull: false }, effective_start_date: { type: DataTypes.DATEONLY, allowNull: false }, effective_end_date: DataTypes.DATEONLY, joining_fee_snapshot: { type: DataTypes.DECIMAL(14,2), allowNull: false, defaultValue: '0.00' }, information: DataTypes.TEXT }, { sequelize, modelName: 'Enrollment', tableName: 'member_fund_enrollments', underscored: true });

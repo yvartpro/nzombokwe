@@ -1,0 +1,3 @@
+import { Model, DataTypes } from 'sequelize'; import sequelize from '../config/database.js';
+export default class User extends Model {}
+User.init({ id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true }, username: { type: DataTypes.STRING(80), allowNull: false, unique: true }, password_hash: { type: DataTypes.STRING(255), allowNull: false }, member_id: DataTypes.INTEGER.UNSIGNED, role: { type: DataTypes.ENUM('ADMIN','TREASURER','VIEWER'), allowNull: false, defaultValue: 'ADMIN' }, active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true } }, { sequelize, modelName: 'User', tableName: 'users', underscored: true });

@@ -1,0 +1,3 @@
+import { Model, DataTypes } from 'sequelize'; import sequelize from '../config/database.js';
+export default class AuditLog extends Model {}
+AuditLog.init({ id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true }, user_id: DataTypes.INTEGER.UNSIGNED, action: { type: DataTypes.STRING(80), allowNull: false }, entity_type: { type: DataTypes.STRING(80), allowNull: false }, entity_id: DataTypes.INTEGER.UNSIGNED, details: DataTypes.JSON, ip_address: DataTypes.STRING(45), created_at: { type: DataTypes.DATE, allowNull: false } }, { sequelize, modelName: 'AuditLog', tableName: 'audit_logs', timestamps: false, underscored: true });

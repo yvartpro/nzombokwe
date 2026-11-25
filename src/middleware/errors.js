@@ -1,0 +1,2 @@
+export function notFoundHandler(req,res){res.status(404).json({success:false,error:'Route not found'});}
+export function errorHandler(err,req,res,next){if(res.headersSent)return next(err);const status=err.status|| (err.name==='SequelizeUniqueConstraintError'?409:500);if(status>=500)console.error(err);res.status(status).json({success:false,error:status>=500?'An unexpected server error occurred':err.message,details:err.details});}

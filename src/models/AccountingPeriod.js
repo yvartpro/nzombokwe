@@ -1,0 +1,3 @@
+import { Model, DataTypes } from 'sequelize'; import sequelize from '../config/database.js';
+export default class AccountingPeriod extends Model {}
+AccountingPeriod.init({ id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true }, year: { type: DataTypes.SMALLINT.UNSIGNED, allowNull: false }, month: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false }, start_date: { type: DataTypes.DATEONLY, allowNull: false }, end_date: { type: DataTypes.DATEONLY, allowNull: false }, status: { type: DataTypes.ENUM('OPEN','CLOSED'), defaultValue: 'OPEN' }, closed_at: DataTypes.DATE, closed_by: DataTypes.INTEGER.UNSIGNED }, { sequelize, modelName: 'AccountingPeriod', tableName: 'accounting_periods', underscored: true });
